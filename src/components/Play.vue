@@ -1,41 +1,41 @@
 <template>
   <div class="main" v-if="players.length === 3">
       <div class="columns is-vcentered" style="margin-top: 10px;">
-         <div class="column">
-          <div class="columns is-vcentered">
-              <!-- <div class="column"/></div> -->
-              <div class="column is-two-third" style="margin-left: 5px;">
-             Bid: <span class="has-text-info"> {{ game[0].bidder }} 
-                 <span class="has-text-weight-bold has-text-success"> {{ game[0].bid }} </span>
-                 </span>
-            <br>
-            Trump: 
-            <span v-if="game[0].trumpState === `not set`"> X</span>
-            <span v-if="game[0].trumpState === `hidden`"> X</span>
-            <span v-if="game[0].trumpState.endsWith(`pen`)"> {{ trumpValue }}</span>
+            <div class="column">
+                <div class="columns is-vcentered">
+                    <div class="column is-two-third" style="margin-left: 5px;">
+                    Bid: <span class="has-text-info"> {{ game[0].bidder }} 
+                            <span class="has-text-weight-bold has-text-success"> {{ game[0].bid }} </span>
+                            </span>
+                    <br>
+                    Trump: 
+                    <span v-if="game[0].trumpState === `not set`"> X</span>
+                    <span v-if="game[0].trumpState === `hidden`"> X</span>
+                    <span v-if="game[0].trumpState.endsWith(`pen`)"> {{ trumpValue }}</span>
+                    </div>
+                    <div class="column">
+                        <button class="button is-danger is-small" v-if="!game[0].gameOver" @click="revealTrump" :disabled="game[0].trumpState.endsWith(`pen`)">Trump</button>
+                        <button class="button is-success is-small" v-if="game[0].gameOver" @click="skipGame" :disabled="myName !== game[0].bidder">Skip</button>
+                    </div>
+                </div>
+            </div>
+            <div class="column name">
+                <span :class="game[0].turn === players[1] ? `has-text-info` : ``">{{ players[1] }}</span>&nbsp;
+                <img src="https://www.w3schools.com/howto/img_avatar.png" alt="Avatar" class="avatar">
             </div>
             <div class="column">
-          <button class="button is-danger is-small" @click="revealTrump" :disabled="game[0].trumpState.endsWith(`pen`)">Trump</button>
-          </div>
-          </div>
-        </div>
-        <div class="column name">
-            <span :class="game[0].turn === players[1] ? `has-text-info` : ``">{{ players[1] }}</span>&nbsp;
-            <img src="https://www.w3schools.com/howto/img_avatar.png" alt="Avatar" class="avatar">
-        </div>
-        <div class="column">
-            <div class="columns is-vcentered">
-              <div class="column is-half" style="margin-left: 5px;">
-             Our points: {{ ourTeamRoundPoints }}<br>
-            Their points: {{ theirTeamRoundPoints }}
+                <div class="columns is-vcentered">
+                    <div class="column is-half" style="margin-left: 5px;">
+                        Our points: {{ ourTeamRoundPoints }}<br>
+                        Their points: {{ theirTeamRoundPoints }}
+                    </div>
+                    <div class="column">
+                        Our Score <span class="has-text-weight-bold has-text-info">{{ ourTeamGamePoints }}</span>
+                        <br>
+                        Thier Score <span class="has-text-weight-bold has-text-info">{{ theirTeamGamePoints }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="column">
-                Our Score <span class="has-text-weight-bold has-text-info">{{ ourTeamGamePoints }}</span>
-            <br>
-            Thier Score <span class="has-text-weight-bold has-text-info">{{ theirTeamGamePoints }}</span>
-          </div>
-          </div>
-        </div>
       </div>
     
     <div class="columns is-vcentered" style="margin-top: 2%; min-height: 156px;">
@@ -45,31 +45,29 @@
         </div>
         <div class="column is-half" style="display: block;  border-spacing: 10px; margin-left: 20px;">
             <span>
-                    <div class="columns is-vcentered">
-                        <div class="column" style="text-align: right; padding-right: 10px;">
-                            <img class="card" :src="getImagePath(tableCards[0])" :alt="`${tableCards[0]}`" style="margin-right: 0px;" v-if="tableCards[0] !== ``">
-                        </div>
-                        <div style="width: 50px;">
-                            <span v-if="tableCards[1] !== ``">
-                                <img class="card" :src="getImagePath(tableCards[1])" :alt="`${tableCards[1]}`">
-                            </span>
-                            <span v-else>
-                                <div style="min-height: 66px;"></div>
-                            </span>
-                            <br>
-                            <span v-if="tableCards[2] !== ``">
-                                <img class="card" :src="getImagePath(tableCards[2])" :alt="`${tableCards[2]}`">
-                            </span>
-                            <span v-else>
-                                <div style="min-height: 66px;"></div>
-                            </span>
-                        </div>
-                        <div class="column" style="text-align: left;">
-                            <img class="card" :src="getImagePath(tableCards[3])" :alt="`${tableCards[3]}`" v-if="tableCards[3] !== ``">
-                        </div>
+                <div class="columns is-vcentered">
+                    <div class="column" style="text-align: right; padding-right: 10px;">
+                        <img class="card" :src="getImagePath(tableCards[0])" :alt="`${tableCards[0]}`" style="margin-right: 0px;" v-if="tableCards[0] !== ``">
                     </div>
-                        <!-- <img class="card" :src="getImagePath(card)" :alt="`${card}`"> -->
-                        <!-- 1023 -->
+                    <div style="width: 50px;">
+                        <span v-if="tableCards[1] !== ``">
+                            <img class="card" :src="getImagePath(tableCards[1])" :alt="`${tableCards[1]}`">
+                        </span>
+                        <span v-else>
+                            <div style="min-height: 66px;"></div>
+                        </span>
+                        <br>
+                        <span v-if="tableCards[2] !== ``">
+                            <img class="card" :src="getImagePath(tableCards[2])" :alt="`${tableCards[2]}`">
+                        </span>
+                        <span v-else>
+                            <div style="min-height: 66px;"></div>
+                        </span>
+                    </div>
+                    <div class="column" style="text-align: left;">
+                        <img class="card" :src="getImagePath(tableCards[3])" :alt="`${tableCards[3]}`" v-if="tableCards[3] !== ``">
+                    </div>
+                </div>
                 </span>
         </div>
         <div class="column name" style="text-align: right; margin-right: 15px;  margin-top: 35px;">
@@ -102,9 +100,6 @@
         </div>
       </div>
     
-
-
-
         <div :class="`modal ${bidModalView}`" v-if="bidModalView === `is-active`">
         <div class="modal-background"></div>
         <div class="modal-content">
@@ -114,12 +109,6 @@
             <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][3])" alt="card">
             <br>
             <br>
-            <!-- <div class="modal-card">
-                <header class="modal-card-head">
-            <p class="modal-card-title">Bid</p>
-            <button class="button is-info" @click="bid(0)">Pass</button>
-            </header> -->
-            <!-- <section class="modal-card-body"> -->
             <div class="buttons has-addons is-centered">
                 <button class="button is-info" :disabled="calculateBid(game[0].bid, 16, game[0].bidder1)" @click="bid(16)">16</button>
                 <button class="button is-info" :disabled="calculateBid(game[0].bid, 17, game[0].bidder1)" @click="bid(17)">17</button>
@@ -146,51 +135,33 @@
             <span v-else>
                 <span class="has-text-danger">None</span>
             </span>
-            <!-- </section> -->
             </div>
-        <!-- </div> -->
         </div>
 
         <div :class="`modal ${trumpModalView}`" v-if="trumpModalView === `is-active`">
             <div class="modal-background"></div>
             <div class="modal-content">
-                <!-- <div class="modal-card">
-                    <header class="modal-card-head">
-                <p class="modal-card-title">Bid</p>
-                <button class="button is-info" @click="bid(0)">Pass</button>
-                </header> -->
-                <!-- <section class="modal-card-body"> -->
-                    Set Trump <br><br>
-                    <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][0])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][0][game[0][`player${myIndex+1}`][0].length - 1])">
-                    <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][1])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][1][game[0][`player${myIndex+1}`][1].length - 1])">
-                    <br>
-                    <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][2])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][2][game[0][`player${myIndex+1}`][2].length - 1])">
-                    <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][3])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][3][game[0][`player${myIndex+1}`][3].length - 1])">
-                <!-- </section> -->
-                </div>
-            <!-- </div> -->
+                Set Trump <br><br>
+                <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][0])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][0][game[0][`player${myIndex+1}`][0].length - 1])">
+                <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][1])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][1][game[0][`player${myIndex+1}`][1].length - 1])">
+                <br>
+                <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][2])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][2][game[0][`player${myIndex+1}`][2].length - 1])">
+                <img class="card" :src="getImagePath(game[0][`player${myIndex+1}`][3])" alt="card" @click="setTrump(game[0][`player${myIndex+1}`][3][game[0][`player${myIndex+1}`][3].length - 1])">
+            </div>
         </div>
 
         <div :class="`modal ${doubleModalView}`" v-if="doubleModalView === `is-active`">
             <div class="modal-background"></div>
-            <div class="modal-content">
-                <!-- <div class="modal-card">
-                    <header class="modal-card-head">
-                <p class="modal-card-title">Bid</p>
-                <button class="button is-info" @click="bid(0)">Pass</button>
-                </header> -->
-                <!-- <section class="modal-card-body"> -->
-                    <div class="buttons has-addons is-centered">
-                        <button class="button is-danger" @click="highStakes(stakeValue)">
-                            <span v-if="game[0].state === `double0`">Set Double</span>
-                            <span v-if="game[0].state === `double1`">Set Re-Double</span>
-                            <span v-if="game[0].state === `double2`">Full set</span>
-                        </button>
-                        <button class="button is-info" @click="highStakes(0)">Cancel</button>
-                    </div>
-                <!-- </section> -->
+            <div class="modal-content" style="height: 50px;">
+                <div class="buttons has-addons is-centered">
+                    <button class="button is-danger" @click="highStakes(stakeValue)">
+                        <span v-if="game[0].state === `double0`">Set Double</span>
+                        <span v-if="game[0].state === `double1`">Set Re-Double</span>
+                        <span v-if="game[0].state === `double2`">Full set</span>
+                    </button>
+                    <button class="button is-info" @click="highStakes(0)">Cancel</button>
                 </div>
-            <!-- </div> -->
+            </div>
         </div>
 
         <div :class="`modal ${roundOverModalView}`" v-if="roundOverModalView === `is-active`">
@@ -198,11 +169,11 @@
         <div class="modal-content custom-modal">
             <div class="modal-card" style="width: 300px;">
                 <section class="modal-card-body has-text-black" style="background-color: #dedede;">
-                        Top Bidder: {{ game[0].bidder }} <br>
-                        Bid: {{ game[0].bid }} <br>
-                        Our points: {{ ourTeamRoundPoints }} <br>
-                        Their points: {{ theirTeamRoundPoints }} <br><br>
-                        <button class="button is-success is-small" :disabled="disableResetButton" v-if="this.myName === game[0].bidder" @click="resetGame()">Next</button>
+                    Top Bidder: {{ game[0].bidder }} <br>
+                    Bid: {{ game[0].bid }} <br>
+                    Our points: {{ ourTeamRoundPoints }} <br>
+                    Their points: {{ theirTeamRoundPoints }} <br><br>
+                    <button class="button is-success is-small" :disabled="disableResetButton" v-if="this.myName === game[0].bidder" @click="resetGame()">Next</button>
                 </section>
             </div> 
         </div>
@@ -213,8 +184,8 @@
         <div class="modal-content custom-modal">
             <div class="modal-card" style="width: 300px;">
                 <section class="modal-card-body has-text-black" style="background-color: #dedede;">
-                        {{ hasMarriage }} has marriage!<br><br>
-                        <button class="button is-success is-small" @click="ackMarriage">Next</button>
+                    {{ hasMarriage }} has marriage!<br><br>
+                    <button class="button is-success is-small" @click="ackMarriage">Next</button>
                 </section>
             </div> 
         </div>
@@ -475,15 +446,16 @@ export default {
             }
             playerCards.splice(index, 1);
             db.collection("games").doc(this.docId).update({ [`player${ind+1}`]: playerCards });
-            db.collection("games").doc(this.docId).update({ sequence: [...this.game[0].sequence, card] });
+            let allCardsPlayed = [...this.game[0].sequence, card];
+            db.collection("games").doc(this.docId).update({ sequence: allCardsPlayed });
             if (newSeq.length % 4 === 0) {
-                this.keepRoundScore(checkRange);
+                this.keepRoundScore(checkRange, allCardsPlayed.length);
             }
             else {
                 db.collection("games").doc(this.docId).update({ turn: this.game[0].playersJoined[(ind+1)%4] });
             }
         },
-        keepRoundScore(checkRange) {
+        keepRoundScore(checkRange, noOfCardsPlayed) {
             const playerOrder = [...this.players, this.myName];
             let cards = {
                 "J" : { points: 3, priority: 7},
@@ -526,6 +498,7 @@ export default {
             if (this.myName === this.game[0].createdBy || this.players[1] === this.game[0].createdBy) {
                 myTeamNum = 1;
             }
+            theirTeamNum = (myTeamNum === 1) ? 2 : 1;
             // our team won round
             if (roundWinner === this.myName || roundWinner === this.players[1]) {
                 db.collection("games").doc(this.docId).update({ [`team${myTeamNum}current`]: (this.game[0][`team${myTeamNum}current`] + points) });
@@ -533,24 +506,62 @@ export default {
             }
             // their team won round
             else {
-                theirTeamNum = (myTeamNum === 1) ? 2 : 1;
                 db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}current`]: (this.game[0][`team${theirTeamNum}current`] + points) });
                 finalRoundScore[`team${theirTeamNum}`] += points;
             }
-            if ((finalRoundScore.team1 + finalRoundScore.team2) === 28) {
-                this.keepGameScore(finalRoundScore, myTeamNum, theirTeamNum);
-            }
+            // update turn of winner
             db.collection("games").doc(this.docId).update({ turn: roundWinner });
+            // wait 3 seconds before removing cards from table
             setTimeout(() => {
                 db.collection("games").doc(this.docId).update({ waitFlag: false });
                 db.collection("games").doc(this.docId).update({ roundStarter: roundWinner });
             }, 3000);
+            // cards over, round over condition
+            if (noOfCardsPlayed === 32) {
+                this.keepGameScore(finalRoundScore, myTeamNum, theirTeamNum);
+            }
+            // skip game condition
+            else if (this.game[0].trumpState === "open" && this.game[0].gameOver === false) {
+                if (this.game[0].bidder === this.myName || this.game[0].bidder === this.players[1]) {
+                    if (finalRoundScore[`team${theirTeamNum}`] > (28 - this.game[0].bid)) {
+                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: myTeamNum });
+                    }
+                    else if (finalRoundScore[`team${myTeamNum}`] >= this.game[0].bid && finalRoundScore[`team${theirTeamNum}`] > 0) {
+                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: myTeamNum });
+                    }
+                }
+                else {
+                    if (finalRoundScore[`team${myTeamNum}`] > (28 - this.game[0].bid)) {
+                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: theirTeamNum });
+                    }
+                    else if (finalRoundScore[`team${theirTeamNum}`] >= this.game[0].bid && finalRoundScore[`team${myTeamNum}`] > 0) {
+                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: theirTeamNum });
+                    }
+                }
+            }
+        },
+        skipGame() {
+            let extra = 0;
+            if (this.game[0][`team${this.game[0].bidderTeam}current`] === 28) {
+                extra = 1;
+            }
+            if (this.game[0].gameOverTeamWon === this.game[0].bidderTeam) {
+                db.collection("games").doc(this.docId).update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] + this.game[0].stakes + extra) });
+            }
+            else {
+                db.collection("games").doc(this.docId).update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] - this.game[0].stakes) });
+            }
+            db.collection("games").doc(this.docId).update({ state: "roundOver" });
         },
         keepGameScore(finalRoundScore, myTeamNum, theirTeamNum) {
             // our team won game
+            let extra = 0;
             if (this.game[0].bidder === this.myName || this.game[0].bidder === this.players[1]) {
+                if (finalRoundScore[`team${myTeamNum}`] === 28) {
+                    extra = 1;
+                }
                 if (this.game[0].bid <= finalRoundScore[`team${myTeamNum}`]) {
-                    db.collection("games").doc(this.docId).update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] + this.game[0].stakes) });
+                    db.collection("games").doc(this.docId).update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] + this.game[0].stakes + extra) });
                 }
                 else {
                     db.collection("games").doc(this.docId).update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] - this.game[0].stakes) });
@@ -558,8 +569,11 @@ export default {
             }
             // their team won game
             else {
+                if (finalRoundScore[`team${theirTeamNum}`] === 28) {
+                    extra = 1;
+                }
                 if (this.game[0].bid <= finalRoundScore[`team${theirTeamNum}`]) {
-                    db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] + this.game[0].stakes) });
+                    db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] + this.game[0].stakes + extra) });
                 }
                 else {
                     db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] - this.game[0].stakes) });
@@ -572,27 +586,31 @@ export default {
             setTimeout(() => {
                 const ind = this.game[0].playersJoined.indexOf(this.game[0].gameTurn);
                 const nextPlayer = this.game[0].playersJoined[(ind+1)%4];
-                db.collection("games").doc(this.docId).update({ state: "deal0" });
-                db.collection("games").doc(this.docId).update({ bid: 0 });
-                db.collection("games").doc(this.docId).update({ bidTurn: nextPlayer });
-                db.collection("games").doc(this.docId).update({ bidder: "" });
-                db.collection("games").doc(this.docId).update({ bidder1: nextPlayer });
-                db.collection("games").doc(this.docId).update({ bidder2: "" });
-                db.collection("games").doc(this.docId).update({ bids: [-1, -1, -1, -1] });
-                db.collection("games").doc(this.docId).update({ cardsLeft: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"] });
-                db.collection("games").doc(this.docId).update({ gameTurn: nextPlayer });
-                db.collection("games").doc(this.docId).update({ player1: [] });
-                db.collection("games").doc(this.docId).update({ player2: [] });
-                db.collection("games").doc(this.docId).update({ player3: [] });
-                db.collection("games").doc(this.docId).update({ player4: [] });
-                db.collection("games").doc(this.docId).update({ sequence: [] });
-                db.collection("games").doc(this.docId).update({ stakes: 1 });
-                db.collection("games").doc(this.docId).update({ team1current: 0 });
-                db.collection("games").doc(this.docId).update({ team2current: 0 });
-                db.collection("games").doc(this.docId).update({ trump: 'X' });
-                db.collection("games").doc(this.docId).update({ trumpState: 'not set' });
-                db.collection("games").doc(this.docId).update({ turn: nextPlayer });
-                db.collection("games").doc(this.docId).update({ roundStarter: nextPlayer });
+                db.collection("games").doc(this.docId).update({ 
+                    state: "deal0",
+                    bid: 0,
+                    bidTurn: nextPlayer,
+                    bidder: "",
+                    bidder1: nextPlayer,
+                    bidder2: "",
+                    bids: [-1, -1, -1, -1],
+                    cardsLeft: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"],
+                    gameTurn: nextPlayer,
+                    gameOverTeamWon: 0,
+                    bidderTeam: 0,
+                    player1: [],
+                    player2: [],
+                    player3: [],
+                    player4: [],
+                    sequence: [],
+                    stakes: 1,
+                    team1current: 0,
+                    team2current: 0,
+                    trump: 'X',
+                    trumpState: 'not set',
+                    turn: nextPlayer,
+                    gameOver: false,
+                    roundStarter: nextPlayer });
                 this.disableResetButton = false;
             }, 2000);
         },

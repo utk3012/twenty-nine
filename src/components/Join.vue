@@ -6,7 +6,7 @@
           <div class="column"></div>
           <div class="column is-one-third">
           <div class="control">
-          <input class="input" type="text" placeholder="Game code" v-model="token">
+          <input class="input" type="number" placeholder="Game code" v-model="token">
           <!-- <br><br> -->
           <!-- <input class="input" type="text" placeholder="Name" v-model="name"> -->
         </div>
