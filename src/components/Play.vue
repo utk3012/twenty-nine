@@ -196,7 +196,7 @@
                         Bid: {{ game[0].bid }} <br>
                         Our points: {{ ourTeamRoundPoints }} <br>
                         Their points: {{ theirTeamRoundPoints }} <br><br>
-                        <button class="button is-success is-small" v-if="this.myName === game[0].bidder" @click="resetGame()">Next</button>
+                        <button class="button is-success is-small" :disabled="disableResetButton" v-if="this.myName === game[0].bidder" @click="resetGame()">Next</button>
                 </section>
             </div> 
         </div>
@@ -229,28 +229,31 @@ export default {
             myName: "",
             players: [],
             myIndex: -1,
+            docId: "",
+            disableResetButton: false,
             cards: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"],
             order: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"]
         };
     },
     created() {
         firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-              this.myName = user.displayName.split(" ")[0];
+            if (!user) {
+                this.$router.push({ path: '/' });
             }
-            else {
-              this.$router.push({ path: '/' });
-            }
+            // else {
+            // }
         // this.myName = localStorage.getItem("player");
         db.collection('games').where('token', '==', +this.$route.params.id)
           .get()
           .then((querySnapshot) => {
               querySnapshot.forEach((doc) => {
+                  this.docId = doc.id;
                   this.myIndex = doc.data().playersUID.indexOf(user.uid);
                   if (!doc.data().playersUID.includes(user.uid) || doc.data().playersUID.length !== 4) {
-                    this.$router.push({ path: '/join' });
+                      this.$router.push({ path: '/join' });
                     return;
                   }
+                  this.myName = doc.data().playersJoined[this.myIndex];
                 // this.myIndex = doc.data().playersJoined.indexOf(this.myName);
                   this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+1)%4]);
                   this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+2)%4]);
@@ -508,6 +511,7 @@ export default {
                     playerCards.splice(index, 1);
                     db.collection("games").doc(doc.id).update({ [`player${ind+1}`]: playerCards });
                     if (newSeq.length % 4 === 0) {
+                        db.collection("games").doc(doc.id).update({ waitFlag: true });
                         this.keepRoundScore(checkRange);
                     }
                     else {
@@ -578,7 +582,6 @@ export default {
                         this.keepGameScore(finalRoundScore, myTeamNum, theirTeamNum);
                     }
                     db.collection("games").doc(doc.id).update({ turn: roundWinner });
-                    db.collection("games").doc(doc.id).update({ waitFlag: true });
                     setTimeout(() => {
                         db.collection("games").doc(doc.id).update({ waitFlag: false });
                         db.collection("games").doc(doc.id).update({ roundStarter: roundWinner });
@@ -614,6 +617,7 @@ export default {
             })
         },
         resetGame() {
+            this.disableResetButton = true;
             setTimeout(() => {
                 db.collection('games').where('token', '==', +this.$route.params.id)
                 .get()
@@ -642,6 +646,7 @@ export default {
                     db.collection("games").doc(doc.id).update({ trumpState: 'not set' });
                     db.collection("games").doc(doc.id).update({ turn: nextPlayer });
                     db.collection("games").doc(doc.id).update({ roundStarter: nextPlayer });
+                    this.disableResetButton = false;
                     })
                 })
             }, 2000);
