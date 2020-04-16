@@ -7,6 +7,7 @@ import firebase from 'firebase/app'
 import 'firebase/firestore'
 
 import { routes } from './routes'
+import './registerServiceWorker'
 
 firebase.initializeApp({
   apiKey: "AIzaSyC7VuiuyQyAaIjnEXbMR69U26TmJfHKXyM",
