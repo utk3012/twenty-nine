@@ -66,6 +66,7 @@ export default {
         playersUID: [user.uid],
         playerPhotos: [],
         turn: this.name,
+        cardsLeft: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"],
         roundStarter: this.name,
         state: "deal0",
         trump: "X",

@@ -48,6 +48,8 @@ export default {
     },
   methods: {
       joinGame() {
+        // localStorage.setItem("player", this.token);
+        // this.$router.push({ path: '/play/582563' });
           firebase.auth().onAuthStateChanged((user) => {
             if (user) {
               this.name = user.displayName.split(" ")[0];
