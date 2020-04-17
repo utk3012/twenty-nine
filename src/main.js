@@ -5,20 +5,12 @@ import VueRouter from 'vue-router'
 import { firestorePlugin } from 'vuefire';
 import firebase from 'firebase/app'
 import 'firebase/firestore'
+import config from '../env.js'
 
 import { routes } from './routes'
 import './registerServiceWorker'
 
-firebase.initializeApp({
-  apiKey: "AIzaSyC7VuiuyQyAaIjnEXbMR69U26TmJfHKXyM",
-  authDomain: "twenty-nine-game.firebaseapp.com",
-  databaseURL: "https://twenty-nine-game.firebaseio.com",
-  projectId: "twenty-nine-game",
-  storageBucket: "twenty-nine-game.appspot.com",
-  messagingSenderId: "192071876425",
-  appId: "1:192071876425:web:30923cc4527d786d4ea498",
-  measurementId: "G-9E2L73Z1YD"
-})
+firebase.initializeApp(config)
 
 Vue.config.productionTip = false
 Vue.use(VueRouter);
