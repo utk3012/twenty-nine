@@ -91,10 +91,10 @@
                     </span>
                 </span>
             </span> 
-            <span v-if="game[0].turn === myName && game[0].state === 'deal0'">
+            <span v-if="game[0].gameTurn === myName && game[0].state === 'deal0'">
                 <button class="button is-success is-small" @click="dealCards(16)">New Deal</button>
             </span>
-            <span v-if="game[0].turn !== myName && game[0].state === 'deal0'">
+            <span v-if="game[0].gameTurn !== myName && game[0].state === 'deal0'">
                 Waiting for {{ game[0].turn }} to deal
             </span>
         </div>
@@ -242,7 +242,10 @@ export default {
             let p2 = [];
             let p3 = [];
             let p4 = [];
-            let cards = this.game[0].cardsLeft;
+            let cards = ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"];
+            if (num === 0) {
+                cards = this.game[0].cardsLeft;
+            }
             while (cards.length > num) {
                 const rand = Math.floor(Math.random() * (cards.length-1));
                 if (cards.length % 4 === 0) {
@@ -274,11 +277,7 @@ export default {
             p2.sort(this.sortOrder);
             p3.sort(this.sortOrder);
             p4.sort(this.sortOrder);
-            db.collection("games").doc(this.docId).update({player1: p1});
-            db.collection("games").doc(this.docId).update({player2: p2});
-            db.collection("games").doc(this.docId).update({player3: p3});
-            db.collection("games").doc(this.docId).update({player4: p4});
-            db.collection("games").doc(this.docId).update({state: state});      
+            db.collection("games").doc(this.docId).update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state});
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
@@ -296,7 +295,6 @@ export default {
             return true;
         },
         bid(value) {
-            
             const ind = this.game[0].playersJoined.indexOf(this.myName);
             const tempBids = [...this.game[0].bids];
             tempBids[ind] = value;
@@ -582,19 +580,17 @@ export default {
             db.collection("games").doc(this.docId).update({ state: "roundOver" });
         },
         resetGame() {
+            console.log("reset");
             this.disableResetButton = true;
-            setTimeout(() => {
-                const ind = this.game[0].playersJoined.indexOf(this.game[0].gameTurn);
+            const ind = this.game[0].playersJoined.indexOf(this.game[0].gameTurn);
                 const nextPlayer = this.game[0].playersJoined[(ind+1)%4];
                 db.collection("games").doc(this.docId).update({ 
-                    state: "deal0",
                     bid: 0,
                     bidTurn: nextPlayer,
                     bidder: "",
                     bidder1: nextPlayer,
                     bidder2: "",
                     bids: [-1, -1, -1, -1],
-                    cardsLeft: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"],
                     gameTurn: nextPlayer,
                     gameOverTeamWon: 0,
                     bidderTeam: 0,
@@ -610,7 +606,10 @@ export default {
                     trumpState: 'not set',
                     turn: nextPlayer,
                     gameOver: false,
-                    roundStarter: nextPlayer });
+                    roundStarter: nextPlayer
+                });
+            setTimeout(() => {
+                db.collection("games").doc(this.docId).update({ state: "deal0" });
                 this.disableResetButton = false;
             }, 2000);
         },
