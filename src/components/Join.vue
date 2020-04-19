@@ -5,13 +5,15 @@
       <div class="columns">
           <div class="column"></div>
           <div class="column is-one-third">
+            <h1 class="has-text-white">Join Game</h1>
+            <br>
           <div class="control">
           <input class="input" type="number" placeholder="Game code" v-model="token">
-          <!-- <br><br> -->
-          <!-- <input class="input" type="text" placeholder="Name" v-model="name"> -->
         </div>
         <br>
         <button class="button is-success" @click="joinGame">Join</button>
+        <br><br>
+        <router-link class="button is-info is-outlined" :to="`/create`" tag="button">Go to Create</router-link>
         </div>
         <div class="column"></div>
       </div>
@@ -68,8 +70,8 @@ export default {
                     if (doc.data().playersJoined.indexOf(this.name) !== -1) {
                       this.name += '1';
                     }                    
-                    db.collection("games").doc(doc.id).update({playersJoined: [...doc.data().playersJoined, this.name]});
-                    db.collection("games").doc(doc.id).update({playersUID: [...doc.data().playersUID, user.uid]});
+                    db.collection("games").doc(doc.id).update({ playersJoined: firebase.firestore.FieldValue.arrayUnion(this.name) });
+                    db.collection("games").doc(doc.id).update({ playersUID: firebase.firestore.FieldValue.arrayUnion(user.uid) });
                     this.joined = true;
                   }
                   else if (doc.data().playersUID.indexOf(user.uid) !== -1) {

@@ -10,6 +10,8 @@
         <!-- </div> -->
         <br>
         <button class="button is-success" @click="createGame">Create</button>
+        <br><br>
+        <router-link class="button is-info is-outlined" :to="`/join`" tag="button">Go to Join Page</router-link>
         </div>
         <div class="column"></div>
       </div>
@@ -90,7 +92,10 @@ export default {
         team2current: 0,
         stakes: 1,
         waitFlag: false,
-        gameTurn: this.name
+        gameTurn: this.name,
+        double: [],
+        redouble: [],
+        fullset: []
       });
       this.created = true;
       

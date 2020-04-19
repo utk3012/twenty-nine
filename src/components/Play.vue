@@ -12,6 +12,9 @@
                     <span v-if="game[0].trumpState === `not set`"> X</span>
                     <span v-if="game[0].trumpState === `hidden`"> X</span>
                     <span v-if="game[0].trumpState.endsWith(`pen`)"> {{ trumpValue }}</span>
+                    <span v-if="game[0].stakes === 2" class="has-text-danger"> (Double)</span>
+                    <span v-if="game[0].stakes === 4" class="has-text-danger"> (Re-Double)</span>
+                    <span v-if="game[0].stakes === 6" class="has-text-danger"> (Full Set)</span>
                     </div>
                     <div class="column">
                         <button class="button is-danger is-small" v-if="!game[0].gameOver" @click="revealTrump" :disabled="game[0].trumpState.endsWith(`pen`)">Trump</button>
@@ -32,7 +35,7 @@
                     <div class="column">
                         Our Score <span class="has-text-weight-bold has-text-info">{{ ourTeamGamePoints }}</span>
                         <br>
-                        Thier Score <span class="has-text-weight-bold has-text-info">{{ theirTeamGamePoints }}</span>
+                        Their Score <span class="has-text-weight-bold has-text-info">{{ theirTeamGamePoints }}</span>
                     </div>
                 </div>
             </div>
@@ -83,6 +86,9 @@
                 <span v-if="game[0].state === `play` && game[0].turn !== myName">{{ game[0].turn }}'s Turn</span>
                 <span v-if="game[0].state === `bidding` && game[0].bidTurn !== myName">{{ game[0].bidTurn }} is bidding</span>
                 <span v-if="game[0].state === `setTrump` && game[0].bidder !== myName">{{ game[0].bidder }} is setting trump</span>
+                <span v-if="game[0].state === `double`">Considering double</span>
+                <span v-if="game[0].state === `redouble`">Considering Re-double</span>
+                <span v-if="game[0].state === `fullset`">Considering Fullset</span>
             </div>
             <span v-if="game[0].state !== 'deal0'">
                 <span v-for="(card, index) in game[0][`player${myIndex+1}`]" :key="card">
@@ -154,12 +160,18 @@
             <div class="modal-background"></div>
             <div class="modal-content" style="height: 50px;">
                 <div class="buttons has-addons is-centered">
-                    <button class="button is-danger" @click="highStakes(stakeValue)">
-                        <span v-if="game[0].state === `double0`">Set Double</span>
-                        <span v-if="game[0].state === `double1`">Set Re-Double</span>
-                        <span v-if="game[0].state === `double2`">Full set</span>
-                    </button>
-                    <button class="button is-info" @click="highStakes(0)">Cancel</button>
+                    <span v-if="game[0].state === `double`">
+                        <button class="button is-danger" @click="highStakes(2)">Set Double</button>
+                        <button class="button is-info" @click="highStakes(1)">Cancel</button>
+                    </span>
+                    <span v-if="game[0].state === `redouble`">
+                        <button class="button is-danger" @click="highStakes(4)">Re-Double</button>
+                        <button class="button is-info" @click="highStakes(3)">Cancel</button>
+                    </span>
+                    <span v-if="game[0].state === `fullset`">
+                        <button class="button is-danger" @click="highStakes(6)">Full Set</button>
+                        <button class="button is-info" @click="highStakes(5)">Cancel</button>
+                    </span>
                 </div>
             </div>
         </div>
@@ -173,7 +185,7 @@
                     Bid: {{ game[0].bid }} <br>
                     Our points: {{ ourTeamRoundPoints }} <br>
                     Their points: {{ theirTeamRoundPoints }} <br><br>
-                    <button class="button is-success is-small" :disabled="disableResetButton" v-if="this.myName === game[0].bidder" @click="resetGame()">Next</button>
+                    <button class="button is-success is-small" :disabled="disableResetButton" v-if="myName === game[0].bidder" @click="resetGame()">Next</button>
                 </section>
             </div> 
         </div>
@@ -184,13 +196,24 @@
         <div class="modal-content custom-modal">
             <div class="modal-card" style="width: 300px;">
                 <section class="modal-card-body has-text-black" style="background-color: #dedede;">
-                    {{ hasMarriage }} has marriage!<br><br>
+                    {{ hasMarriage }} has marriage! {{ trumpValue }}<br><br>
                     <button class="button is-success is-small" @click="ackMarriage">Next</button>
                 </section>
             </div> 
         </div>
         </div>
         
+        <div :class="`modal ${trumpOpenModalView}`" v-if="trumpOpenModalView === `is-active`">
+        <div class="modal-background"></div>
+        <div class="modal-content custom-modal">
+            <div class="modal-card" style="width: 300px;">
+                <section class="modal-card-body has-text-black" style="background-color: #dedede;">
+                    {{ game[0].turn }} opened trump! {{ trumpValue }}<br>
+                </section>
+            </div> 
+        </div>
+        </div>
+
   </div>
 
 </template>
@@ -206,7 +229,8 @@ export default {
             myName: "",
             players: [],
             myIndex: -1,
-            docId: "",
+            docRef: null,
+            disableStakeButton: false,
             disableResetButton: false,
             order: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"]
         };
@@ -221,7 +245,7 @@ export default {
             .get()
             .then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
-                    this.docId = doc.id;
+                    this.docRef = db.collection("games").doc(doc.id);
                     this.myIndex = doc.data().playersUID.indexOf(user.uid);
                     if (!doc.data().playersUID.includes(user.uid) || doc.data().playersUID.length !== 4) {
                         this.$router.push({ path: '/join' });
@@ -271,13 +295,13 @@ export default {
                 state = "play";
             }
             else {
-                db.collection("games").doc(this.docId).update({ cardsLeft: cards });
+                this.docRef.update({ cardsLeft: cards });
             }
             p1.sort(this.sortOrder);
             p2.sort(this.sortOrder);
             p3.sort(this.sortOrder);
             p4.sort(this.sortOrder);
-            db.collection("games").doc(this.docId).update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state});
+            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state});
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
@@ -298,20 +322,20 @@ export default {
             const ind = this.game[0].playersJoined.indexOf(this.myName);
             const tempBids = [...this.game[0].bids];
             tempBids[ind] = value;
-            db.collection("games").doc(this.docId).update({ bids: tempBids });
+            this.docRef.update({ bids: tempBids });
             if (value !== 0) {
-                db.collection("games").doc(this.docId).update({ bidder: this.myName });
+                this.docRef.update({ bidder: this.myName });
             }
-            db.collection("games").doc(this.docId).update({ bid: Math.max(...tempBids) });
+            this.docRef.update({ bid: Math.max(...tempBids) });
             let count = 0;
             if (this.game[0].bidder2 === "") {
-                db.collection("games").doc(this.docId).update({ bidder2: this.game[0].playersJoined[(ind+1)%4] });
+                this.docRef.update({ bidder2: this.game[0].playersJoined[(ind+1)%4] });
             }
             for (let i = 0; i < 4; i++) {
                 count += (tempBids[i] === 0) ? 1 : 0;
             }
             if (count === 3) {
-                db.collection("games").doc(this.docId).update({ state: "setTrump" });
+                this.docRef.update({ state: "setTrump" });
                 return;
             }
             let nextBidder = "";
@@ -323,33 +347,31 @@ export default {
             }
             if (value === 0) {
                 if (Math.max(...tempBids) === 0) {
-                    db.collection("games").doc(this.docId).update({ bidder1: this.game[0].playersJoined[(ind+1)%4] });
-                    db.collection("games").doc(this.docId).update({ bidder2: this.game[0].playersJoined[(ind+2)%4] });
+                    this.docRef.update({ bidder1: this.game[0].playersJoined[(ind+1)%4] });
+                    this.docRef.update({ bidder2: this.game[0].playersJoined[(ind+2)%4] });
                 }
                 else {
                     if (this.myName === this.game[0].bidder1) {
-                        db.collection("games").doc(this.docId).update({ bidder1: this.game[0].bidder2 });
+                        this.docRef.update({ bidder1: this.game[0].bidder2 });
                     }
-                    db.collection("games").doc(this.docId).update({ bidder2: nextBidder });
+                    this.docRef.update({ bidder2: nextBidder });
                 }
-                db.collection("games").doc(this.docId).update({ bidTurn: nextBidder });
+                this.docRef.update({ bidTurn: nextBidder });
             }
             else {
                 if (this.game[0].bidTurn === this.game[0].bidder1) {
-                    db.collection("games").doc(this.docId).update({ bidTurn: (this.game[0].bidder2 === "" ? this.game[0].playersJoined[(ind+1)%4] : this.game[0].bidder2) });
+                    this.docRef.update({ bidTurn: (this.game[0].bidder2 === "" ? this.game[0].playersJoined[(ind+1)%4] : this.game[0].bidder2) });
                 }
                 else if (this.game[0].bidTurn === this.game[0].bidder2) {
-                    db.collection("games").doc(this.docId).update({ bidTurn: this.game[0].bidder1 });
+                    this.docRef.update({ bidTurn: this.game[0].bidder1 });
                 }
             }
         },
         setTrump(suit) {
-            db.collection("games").doc(this.docId).update({ trump: suit });
-            db.collection("games").doc(this.docId).update({ trumpState: "hidden" });
-            db.collection("games").doc(this.docId).update({ state: "double0" });
+            this.docRef.update({ trump: suit, trumpState: "hidden", state: "double" });
         },
         revealTrump() {
-            if (this.myName !== this.game[0].turn) {
+            if (this.myName !== this.game[0].turn || this.game[0].state !== "play") {
                 return;
             }
             const ind = this.game[0].playersJoined.indexOf(this.myName);
@@ -370,47 +392,79 @@ export default {
                 return;
             }
             // checking for marriage
+            let marriage = false;
             for (let i = 1; i <= 4; i++) {
                 if (this.game[0][`player${i}`].includes(`K${this.game[0].trump}`) && this.game[0][`player${i}`].includes(`Q${this.game[0].trump}`)) {
                     if (this.game[0].playersJoined[i-1] === this.game[0].bidder || this.game[0].playersJoined[(i-1+2)%4] === this.game[0].bidder) {
-                        db.collection("games").doc(this.docId).update({ bid: Math.max(this.game[0].bid-4, 16) });
+                        this.docRef.update({ bid: Math.max(this.game[0].bid-4, 16) });
                     }
                     else {
-                        db.collection("games").doc(this.docId).update({ bid: Math.max(this.game[0].bid+4, 28) });
+                        this.docRef.update({ bid: Math.min(this.game[0].bid+4, 28) });
                     }
-                    db.collection("games").doc(this.docId).update({ state: `marriage ${this.game[0].playersJoined[i-1]}` });
+                    this.docRef.update({ state: `marriage ${this.game[0].playersJoined[i-1]}` });
+                    marriage = true;
                     break;
                 }
             }
-
-            db.collection("games").doc(this.docId).update({ trumpState: "justOpen" });
+            this.docRef.update({ trumpState: "justOpen" });
+            if (!marriage) {
+                this.docRef.update({ state: "trumpOpen" });
+                setTimeout(() => {
+                    this.docRef.update({ state: "play" });
+                }, 3000);
+            }
         },
         highStakes(val) {
-            if (val === 0) {
-                this.dealCards(0);
-                return;
+            this.disableStakeButton = true;
+            setTimeout(() => {
+                this.disableStakeButton = false;
+            }, 1000);
+            if (val === 2 || val === 1) {
+                const currVal = [...this.game[0].double, { name: this.myName, action: val }];
+                this.docRef.update({ double: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
+                if (currVal.length === 2) {
+                    if (currVal[0].action === 2 || currVal[1].action === 2) {
+                        this.docRef.update({ state: "redouble", stakes: 2 });
+                    }
+                    else {
+                        this.docRef.update({ state: "play" });
+                        this.dealCards(0);
+                    }
+                }
             }
-            if (val === 2) {
-                db.collection("games").doc(this.docId).update({ stakes: val });
-                db.collection("games").doc(this.docId).update({ state: "double1" });
+            else if (val === 4 || val === 3) {
+                const currVal = [...this.game[0].redouble, { name: this.myName, action: val }];
+                this.docRef.update({ redouble: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
+                if (currVal.length === 2) {
+                    if (currVal[0].action === 4 || currVal[1].action === 4) {
+                        this.docRef.update({ state: "fullset", stakes: 4 });
+                    }
+                    else {
+                        this.docRef.update({ state: "play" });
+                        this.dealCards(0);
+                    }
+                }
             }
-            else if (val === 4) {
-                db.collection("games").doc(this.docId).update({ stakes: val });
-                db.collection("games").doc(this.docId).update({ state: "double2" });
-            }
-            else {
-                db.collection("games").doc(this.docId).update({ stakes: val });
-                this.dealCards(0);
+            else if (val === 6 || val === 5) {
+                const currVal = [...this.game[0].fullset, { name: this.myName, action: val }];
+                this.docRef.update({ fullset: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
+                if (currVal.length === 2) {
+                    if (currVal[0].action === 6 || currVal[1].action === 6) {
+                        this.docRef.update({ stakes: 6 });
+                    }
+                    this.docRef.update({ state: "play" });
+                    this.dealCards(0);
+                }
             }
         },
         playCard(card, index) {
-            if (this.game[0].turn !== this.myName) {
+            if (this.game[0].turn !== this.myName || this.game[0].state !== "play") {
                 return;
             }
             const ind = this.game[0].playersJoined.indexOf(this.myName);
             const newSeq = [...this.game[0].sequence, card];
             if (newSeq.length % 4 === 0) {
-                db.collection("games").doc(this.docId).update({ waitFlag: true });
+                this.docRef.update({ waitFlag: true });
             }
             const len = newSeq.length;
             let checkRange = newSeq.slice(Math.max(len - (len%4), 0));
@@ -437,20 +491,20 @@ export default {
                     // player has trump, didnot throw inspite of having
                     return;
                 }
-                db.collection("games").doc(this.docId).update({ trumpState: 'open' });
+                this.docRef.update({ trumpState: 'open' });
             }
             if (this.game[0].trumpState === "justOpen") {
-                db.collection("games").doc(this.docId).update({ trumpState: 'open' });
+                this.docRef.update({ trumpState: 'open' });
             }
             playerCards.splice(index, 1);
-            db.collection("games").doc(this.docId).update({ [`player${ind+1}`]: playerCards });
+            this.docRef.update({ [`player${ind+1}`]: playerCards });
             let allCardsPlayed = [...this.game[0].sequence, card];
-            db.collection("games").doc(this.docId).update({ sequence: allCardsPlayed });
+            this.docRef.update({ sequence: allCardsPlayed });
             if (newSeq.length % 4 === 0) {
                 this.keepRoundScore(checkRange, allCardsPlayed.length);
             }
             else {
-                db.collection("games").doc(this.docId).update({ turn: this.game[0].playersJoined[(ind+1)%4] });
+                this.docRef.update({ turn: this.game[0].playersJoined[(ind+1)%4] });
             }
         },
         keepRoundScore(checkRange, noOfCardsPlayed) {
@@ -474,7 +528,7 @@ export default {
             roundWinner = playerOrder[0];
             checkRange.splice(0,1);
             playerOrder.splice(0,1);
-            checkRange.forEach((playedCard, i)=>{
+            checkRange.forEach((playedCard, i) => {
                 let currentCard = playedCard.charAt(playedCard.length-1);
                 let currentCardPriority = cards[playedCard.slice(0, playedCard.length-1)].priority;
                 points += cards[playedCard.slice(0,playedCard.length - 1)].points;
@@ -499,20 +553,20 @@ export default {
             theirTeamNum = (myTeamNum === 1) ? 2 : 1;
             // our team won round
             if (roundWinner === this.myName || roundWinner === this.players[1]) {
-                db.collection("games").doc(this.docId).update({ [`team${myTeamNum}current`]: (this.game[0][`team${myTeamNum}current`] + points) });
+                this.docRef.update({ [`team${myTeamNum}current`]: (this.game[0][`team${myTeamNum}current`] + points) });
                 finalRoundScore[`team${myTeamNum}`] += points;
             }
             // their team won round
             else {
-                db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}current`]: (this.game[0][`team${theirTeamNum}current`] + points) });
+                this.docRef.update({ [`team${theirTeamNum}current`]: (this.game[0][`team${theirTeamNum}current`] + points) });
                 finalRoundScore[`team${theirTeamNum}`] += points;
             }
             // update turn of winner
-            db.collection("games").doc(this.docId).update({ turn: roundWinner });
+            this.docRef.update({ turn: roundWinner });
             // wait 3 seconds before removing cards from table
             setTimeout(() => {
-                db.collection("games").doc(this.docId).update({ waitFlag: false });
-                db.collection("games").doc(this.docId).update({ roundStarter: roundWinner });
+                this.docRef.update({ waitFlag: false });
+                this.docRef.update({ roundStarter: roundWinner });
             }, 3000);
             // cards over, round over condition
             if (noOfCardsPlayed === 32) {
@@ -522,18 +576,18 @@ export default {
             else if (this.game[0].trumpState === "open" && this.game[0].gameOver === false) {
                 if (this.game[0].bidder === this.myName || this.game[0].bidder === this.players[1]) {
                     if (finalRoundScore[`team${theirTeamNum}`] > (28 - this.game[0].bid)) {
-                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: myTeamNum });
+                        this.docRef.update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: myTeamNum });
                     }
                     else if (finalRoundScore[`team${myTeamNum}`] >= this.game[0].bid && finalRoundScore[`team${theirTeamNum}`] > 0) {
-                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: myTeamNum });
+                        this.docRef.update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: myTeamNum });
                     }
                 }
                 else {
                     if (finalRoundScore[`team${myTeamNum}`] > (28 - this.game[0].bid)) {
-                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: theirTeamNum });
+                        this.docRef.update({ gameOver: true, gameOverTeamWon: myTeamNum, bidderTeam: theirTeamNum });
                     }
                     else if (finalRoundScore[`team${theirTeamNum}`] >= this.game[0].bid && finalRoundScore[`team${myTeamNum}`] > 0) {
-                        db.collection("games").doc(this.docId).update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: theirTeamNum });
+                        this.docRef.update({ gameOver: true, gameOverTeamWon: theirTeamNum, bidderTeam: theirTeamNum });
                     }
                 }
             }
@@ -544,12 +598,12 @@ export default {
                 extra = 1;
             }
             if (this.game[0].gameOverTeamWon === this.game[0].bidderTeam) {
-                db.collection("games").doc(this.docId).update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] + this.game[0].stakes + extra) });
+                this.docRef.update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] + this.game[0].stakes + extra) });
             }
             else {
-                db.collection("games").doc(this.docId).update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] - this.game[0].stakes) });
+                this.docRef.update({ [`team${this.game[0].bidderTeam}`]: (this.game[0][`team${this.game[0].bidderTeam}`] - this.game[0].stakes) });
             }
-            db.collection("games").doc(this.docId).update({ state: "roundOver" });
+            this.docRef.update({ state: "roundOver" });
         },
         keepGameScore(finalRoundScore, myTeamNum, theirTeamNum) {
             // our team won game
@@ -559,10 +613,10 @@ export default {
                     extra = 1;
                 }
                 if (this.game[0].bid <= finalRoundScore[`team${myTeamNum}`]) {
-                    db.collection("games").doc(this.docId).update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] + this.game[0].stakes + extra) });
+                    this.docRef.update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] + this.game[0].stakes + extra) });
                 }
                 else {
-                    db.collection("games").doc(this.docId).update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] - this.game[0].stakes) });
+                    this.docRef.update({ [`team${myTeamNum}`]: (this.game[0][`team${myTeamNum}`] - this.game[0].stakes) });
                 }
             }
             // their team won game
@@ -571,20 +625,20 @@ export default {
                     extra = 1;
                 }
                 if (this.game[0].bid <= finalRoundScore[`team${theirTeamNum}`]) {
-                    db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] + this.game[0].stakes + extra) });
+                    this.docRef.update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] + this.game[0].stakes + extra) });
                 }
                 else {
-                    db.collection("games").doc(this.docId).update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] - this.game[0].stakes) });
+                    this.docRef.update({ [`team${theirTeamNum}`]: (this.game[0][`team${theirTeamNum}`] - this.game[0].stakes) });
                 }
             }
-            db.collection("games").doc(this.docId).update({ state: "roundOver" });
+            this.docRef.update({ state: "roundOver" });
         },
         resetGame() {
             console.log("reset");
             this.disableResetButton = true;
             const ind = this.game[0].playersJoined.indexOf(this.game[0].gameTurn);
                 const nextPlayer = this.game[0].playersJoined[(ind+1)%4];
-                db.collection("games").doc(this.docId).update({ 
+                this.docRef.update({ 
                     bid: 0,
                     bidTurn: nextPlayer,
                     bidder: "",
@@ -606,16 +660,19 @@ export default {
                     trumpState: 'not set',
                     turn: nextPlayer,
                     gameOver: false,
-                    roundStarter: nextPlayer
+                    roundStarter: nextPlayer,
+                    double: [],
+                    redouble: [],
+                    fullset: []
                 });
             setTimeout(() => {
-                db.collection("games").doc(this.docId).update({ state: "deal0" });
+                this.docRef.update({ state: "deal0" });
                 this.disableResetButton = false;
             }, 2000);
         },
         ackMarriage() {
             setTimeout(() => {
-                db.collection("games").doc(this.docId).update({ state: "play" });
+                this.docRef.update({ state: "play" });
             }, 2000);
         }
     },
@@ -656,14 +713,26 @@ export default {
             return "";
         },
         doubleModalView() {
-            if (this.game[0].state === "double0" && (this.game[0].bidder !== this.myName && this.game[0].bidder !== this.players[1])) {
-                return 'is-active';
+            if (this.disableStakeButton) {
+                return "";
             }
-            else if (this.game[0].state === "double1" && (this.game[0].bidder === this.myName || this.game[0].bidder === this.players[1])) {
-                return 'is-active';
+            if (this.game[0].state === "double" && (this.game[0].bidder !== this.myName && this.game[0].bidder !== this.players[1])) {
+                const choiceMade = this.game[0].double.some((val) => {
+                    return (val.name === this.myName);
+                });
+                return choiceMade ? "" : "is-active";
             }
-            else if (this.game[0].state === "double2" && (this.game[0].bidder !== this.myName && this.game[0].bidder !== this.players[1])) {
-                return 'is-active';
+            else if (this.game[0].state === "redouble" && (this.game[0].bidder === this.myName || this.game[0].bidder === this.players[1])) {
+                const choiceMade = this.game[0].redouble.some((val) => {
+                    return (val.name === this.myName);
+                });
+                return choiceMade ? "" : "is-active";
+            }
+            else if (this.game[0].state === "fullset" && (this.game[0].bidder !== this.myName && this.game[0].bidder !== this.players[1])) {
+                const choiceMade = this.game[0].fullset.some((val) => {
+                    return (val.name === this.myName);
+                });
+                return choiceMade ? "" : "is-active";
             }
             return "";
         },
@@ -681,16 +750,11 @@ export default {
                 return '♦';
             }
         },
-        stakeValue() {
-            if (this.game[0].state === 'double0') {
-                return 2;
+        trumpOpenModalView() {
+            if (this.game[0].state === "trumpOpen") {
+                return "is-active";
             }
-            else if (this.game[0].state === 'double1') {
-                return 4;
-            }
-            else {
-                return 6;
-            }
+            return "";
         },
         tableCards() {
             const len = this.game[0].sequence.length;
@@ -766,12 +830,12 @@ export default {
         border-radius: 50%;
      }
     .card {
-        width: 50px;
-        height: 66px;
+        width: 52px;
+        height: 70px;
         margin-right: 5px;
         border-radius: 4px;
         text-align: center;
-        font-size: 25px;
+        font-size: 20px;
     }
     .custom-modal {
         width: 300px;
