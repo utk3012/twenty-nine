@@ -241,6 +241,12 @@ export default {
                 this.$router.push({ path: '/' });
             }
             // this.myName = localStorage.getItem("player");
+            this.$bind('game', db.collection('games').where('token', '==', +this.$route.params.id))
+                .then(() => {
+                    this.$watch(() => this.game[0].double, this.doubleDecision);
+                    this.$watch(() => this.game[0].redouble, this.redoubleDecision);
+                    this.$watch(() => this.game[0].fullset, this.fullsetDecision);
+                });
             db.collection('games').where('token', '==', +this.$route.params.id)
             .get()
             .then((querySnapshot) => {
@@ -420,41 +426,13 @@ export default {
                 this.disableStakeButton = false;
             }, 1000);
             if (val === 2 || val === 1) {
-                const currVal = [...this.game[0].double, { name: this.myName, action: val }];
                 this.docRef.update({ double: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
-                if (currVal.length === 2) {
-                    if (currVal[0].action === 2 || currVal[1].action === 2) {
-                        this.docRef.update({ state: "redouble", stakes: 2 });
-                    }
-                    else {
-                        this.docRef.update({ state: "play" });
-                        this.dealCards(0);
-                    }
-                }
             }
             else if (val === 4 || val === 3) {
-                const currVal = [...this.game[0].redouble, { name: this.myName, action: val }];
                 this.docRef.update({ redouble: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
-                if (currVal.length === 2) {
-                    if (currVal[0].action === 4 || currVal[1].action === 4) {
-                        this.docRef.update({ state: "fullset", stakes: 4 });
-                    }
-                    else {
-                        this.docRef.update({ state: "play" });
-                        this.dealCards(0);
-                    }
-                }
             }
             else if (val === 6 || val === 5) {
-                const currVal = [...this.game[0].fullset, { name: this.myName, action: val }];
                 this.docRef.update({ fullset: firebase.firestore.FieldValue.arrayUnion({ name: this.myName, action: val }) });
-                if (currVal.length === 2) {
-                    if (currVal[0].action === 6 || currVal[1].action === 6) {
-                        this.docRef.update({ stakes: 6 });
-                    }
-                    this.docRef.update({ state: "play" });
-                    this.dealCards(0);
-                }
             }
         },
         playCard(card, index) {
@@ -674,12 +652,38 @@ export default {
             setTimeout(() => {
                 this.docRef.update({ state: "play" });
             }, 2000);
+        },
+        doubleDecision(double) {
+            if (double.length === 2 && this.game[0].state === "double" && double[1].name === this.myName) {
+                if (double[0].action === 2 || double[1].action === 2) {
+                    this.docRef.update({ state: "redouble", stakes: 2 });
+                }
+                else {
+                    this.docRef.update({ state: "play" });
+                    this.dealCards(0);
+                }
+            }
+        },
+        redoubleDecision(redouble) {
+            if (redouble.length === 2 && this.game[0].state === "redouble" && redouble[1].name === this.myName) {
+                if (redouble[0].action === 4 || redouble[1].action === 4) {
+                    this.docRef.update({ state: "fullset", stakes: 4 });
+                }
+                else {
+                    this.docRef.update({ state: "play" });
+                    this.dealCards(0);
+                }
+            }
+        },
+        fullsetDecision(fullset) {
+            if (fullset.length === 2 && this.game[0].state === "fullset" && fullset[1].name === this.myName) {
+                if (fullset[0].action === 6 || fullset[1].action === 6) {
+                    this.docRef.update({ stakes: 6 });
+                }
+                this.docRef.update({ state: "play" });
+                this.dealCards(0);
+            }
         }
-    },
-    firestore() {
-        return {
-            game: db.collection('games').where('token', '==', +this.$route.params.id)
-        };
     },
     computed: {
         bidModalView() {
