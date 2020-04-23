@@ -8,17 +8,17 @@
                             <span class="has-text-weight-bold has-text-success"> {{ game[0].bid }} </span>
                             </span>
                     <br>
-                    Trump: 
-                    <span v-if="game[0].trumpState === `not set`"> X</span>
-                    <span v-if="game[0].trumpState === `hidden`"> X</span>
-                    <span v-if="game[0].trumpState.endsWith(`pen`)"> {{ trumpValue }}</span>
-                    <span v-if="game[0].stakes === 2" class="has-text-danger"> (Double)</span>
-                    <span v-if="game[0].stakes === 4" class="has-text-danger"> (Re-Double)</span>
-                    <span v-if="game[0].stakes === 6" class="has-text-danger"> (Full Set)</span>
+                    <div class="info">
+                        <div v-if="game[0].trumpState === `not set` || game[0].trumpState === `hidden`">Trump: X</div>
+                        <div v-if="game[0].stakes===2" class="has-text-danger">(Double)</div>
+                        <div v-if="game[0].stakes===4" class="has-text-danger">(Re-Double)</div>
+                        <div v-if="game[0].stakes===6" class="has-text-danger">(Full Set)</div>
+                        <button v-if="game[0].gameOver && myName === game[0].bidder" class="button is-success is-small"  @click="skipGame">Skip</button>
+                    </div>
                     </div>
                     <div class="column">
-                        <button class="button is-danger is-small" v-if="!game[0].gameOver" @click="revealTrump" :disabled="game[0].trumpState.endsWith(`pen`)">Trump</button>
-                        <button class="button is-success is-small" v-if="game[0].gameOver" @click="skipGame" :disabled="myName !== game[0].bidder">Skip</button>
+                        <button class="button is-danger is-small" v-if="!game[0].gameOver && !game[0].trumpState.endsWith(`pen`)" @click="revealTrump">Trump</button>
+                        <img class="trumpimg" v-if="game[0].trumpState.endsWith(`pen`)" :src="getTrumpImage(this.game[0].trump)" alt="Trump">
                     </div>
                 </div>
             </div>
@@ -311,6 +311,9 @@ export default {
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
+        },
+        getTrumpImage(trump){
+            return require(`../assets/trump/2${trump}.png`);
         },
         sortOrder(a, b) {
             return this.order.indexOf(a) - this.order.indexOf(b);
@@ -822,6 +825,31 @@ export default {
     }
     .columns {
         min-height: 33%;
+    }
+    .info{
+        display: flex;
+        flex-flow: column nowrap;
+        padding: 5px;
+    }
+    .info > div{
+        margin-bottom: 5px;
+    }
+    .info > button{
+        margin-left: auto;
+        margin-right: auto;
+        width: 50px;
+    }
+    .info:last-child{
+        margin-bottom: 0;
+    }
+    .trumpimg{
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        background: white;
+        height: 40px;
+        width: 40px;
+        border-radius: 5px;
     }
     .name {
         font-size: 25px;
