@@ -232,6 +232,7 @@ export default {
             docRef: null,
             disableStakeButton: false,
             disableResetButton: false,
+            disableCardPlay: false,
             order: ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"]
         };
     },
@@ -307,7 +308,7 @@ export default {
             p2.sort(this.sortOrder);
             p3.sort(this.sortOrder);
             p4.sort(this.sortOrder);
-            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state});
+            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state, roundStarter: this.game[0].gameTurn});
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
@@ -439,9 +440,13 @@ export default {
             }
         },
         playCard(card, index) {
-            if (this.game[0].turn !== this.myName || this.game[0].state !== "play") {
+            if (this.game[0].turn !== this.myName || this.game[0].state !== "play" || this.game[0].waitFlag || this.disableCardPlay) {
                 return;
             }
+            this.disableCardPlay = true;
+            setTimeout(() => {
+                this.disableCardPlay = false;
+            }, 1000);
             const ind = this.game[0].playersJoined.indexOf(this.myName);
             const newSeq = [...this.game[0].sequence, card];
             if (newSeq.length % 4 === 0) {
@@ -502,30 +507,34 @@ export default {
             };
             const trump = this.game[0].trump;
             const trumpState = this.game[0].trumpState;
-            let firstCard = checkRange[0];
-            let points = cards[firstCard.slice(0, firstCard.length-1)].points;
-            let highestCard = firstCard.charAt(firstCard.length-1), 
-            highestCardPriority = cards[firstCard.slice(0, firstCard.length-1)].priority, 
-            roundWinner = playerOrder[0];
-            checkRange.splice(0,1);
-            playerOrder.splice(0,1);
-            checkRange.forEach((playedCard, i) => {
-                let currentCard = playedCard.charAt(playedCard.length-1);
-                let currentCardPriority = cards[playedCard.slice(0, playedCard.length-1)].priority;
-                points += cards[playedCard.slice(0,playedCard.length - 1)].points;
-                if (trumpState === "hidden" || currentCard === highestCard) {
-                    if (currentCardPriority > highestCardPriority){
-                        highestCardPriority = currentCardPriority;
-                        roundWinner = playerOrder[i];
-                    }
-                } else {
-                    if (currentCard === trump) {
-                        highestCard = trump;
-                        highestCardPriority = currentCardPriority;
-                        roundWinner = playerOrder[i];
+            const suits = checkRange.map((val) => { return val.charAt(val.length - 1) });
+            const priority = checkRange.map((val) => { return cards[val.slice(0, val.length-1)].priority });
+            // Assume first card is greatest and first player is round winner
+            let highestCardPriority = priority[0];
+            let winner = 0;
+            // Greatest card of first card's suit wins, assuming no trump
+            for (let i = 1; i <= 3; i++) {
+                if (suits[i] === suits[0] && priority[i] > highestCardPriority) {
+                    highestCardPriority = priority[i];
+                    winner = i;
+                }
+            }
+            highestCardPriority = -1;
+            // Now checking if trump is open and played
+            if (trumpState === "open" && suits[0] !== trump) {
+                for (let i = 1; i <= 3; i++) {
+                    if (suits[i] === trump && priority[i] > highestCardPriority) {
+                        highestCardPriority = priority[i];
+                        winner = i;
                     }
                 }
-            });
+            }
+            const roundWinner = playerOrder[winner];
+            // Calculate total points
+            let points = 0;
+            for (const card of checkRange) {
+                points += cards[card.slice(0, card.length - 1)].points;
+            }
             let finalRoundScore = {team1 :this.game[0].team1current, team2: this.game[0].team2current};
             let myTeamNum = 2, theirTeamNum = 2;
             if (this.myName === this.game[0].createdBy || this.players[1] === this.game[0].createdBy) {
@@ -618,34 +627,34 @@ export default {
             console.log("reset");
             this.disableResetButton = true;
             const ind = this.game[0].playersJoined.indexOf(this.game[0].gameTurn);
-                const nextPlayer = this.game[0].playersJoined[(ind+1)%4];
-                this.docRef.update({ 
-                    bid: 0,
-                    bidTurn: nextPlayer,
-                    bidder: "",
-                    bidder1: nextPlayer,
-                    bidder2: "",
-                    bids: [-1, -1, -1, -1],
-                    gameTurn: nextPlayer,
-                    gameOverTeamWon: 0,
-                    bidderTeam: 0,
-                    player1: [],
-                    player2: [],
-                    player3: [],
-                    player4: [],
-                    sequence: [],
-                    stakes: 1,
-                    team1current: 0,
-                    team2current: 0,
-                    trump: 'X',
-                    trumpState: 'not set',
-                    turn: nextPlayer,
-                    gameOver: false,
-                    roundStarter: nextPlayer,
-                    double: [],
-                    redouble: [],
-                    fullset: []
-                });
+            const nextPlayer = this.game[0].playersJoined[(ind+1)%4];
+            this.docRef.update({ 
+                bid: 0,
+                bidTurn: nextPlayer,
+                bidder: "",
+                bidder1: nextPlayer,
+                bidder2: "",
+                bids: [-1, -1, -1, -1],
+                gameTurn: nextPlayer,
+                gameOverTeamWon: 0,
+                bidderTeam: 0,
+                player1: [],
+                player2: [],
+                player3: [],
+                player4: [],
+                sequence: [],
+                stakes: 1,
+                team1current: 0,
+                team2current: 0,
+                trump: 'X',
+                trumpState: 'not set',
+                turn: nextPlayer,
+                gameOver: false,
+                roundStarter: nextPlayer,
+                double: [],
+                redouble: [],
+                fullset: []
+            });
             setTimeout(() => {
                 this.docRef.update({ state: "deal0" });
                 this.disableResetButton = false;
