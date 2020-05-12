@@ -141,6 +141,14 @@
             <span v-else>
                 <span class="has-text-danger">None</span>
             </span>
+            <br>
+            <span class="has-text-success">Passed:&emsp;</span>
+            <span v-for="(val, index) in game[0]['bids']" :key="index">
+                <span class="has-text-warning" v-if="val === 0">{{ game[0].playersJoined[index]+"  " }}</span>
+            </span>
+            <span>
+                <span class="has-text-danger" v-if="nonePassed">None</span>
+            </span>
             </div>
         </div>
 
@@ -185,7 +193,7 @@
                     Bid: {{ game[0].bid }} <br>
                     Our points: {{ ourTeamRoundPoints }} <br>
                     Their points: {{ theirTeamRoundPoints }} <br><br>
-                    <button class="button is-success is-small" :disabled="disableResetButton" v-if="myName === game[0].bidder" @click="resetGame()">Next</button>
+                    <button class="button is-success is-small" :disabled="disableResetButton" v-if="myName === game[0].bidder" @click="resetGame">Next</button>
                 </section>
             </div> 
         </div>
@@ -209,6 +217,17 @@
             <div class="modal-card" style="width: 300px;">
                 <section class="modal-card-body has-text-black" style="background-color: #dedede;">
                     {{ game[0].turn }} opened trump! {{ trumpValue }}<br>
+                </section>
+            </div> 
+        </div>
+        </div>
+
+        <div :class="`modal ${allPassedModalView}`" v-if="allPassedModalView === `is-active`">
+        <div class="modal-background"></div>
+        <div class="modal-content custom-modal">
+            <div class="modal-card" style="width: 300px;">
+                <section class="modal-card-body has-text-black" style="background-color: #dedede;">
+                    First 3 players passed!<br>
                 </section>
             </div> 
         </div>
@@ -258,7 +277,7 @@ export default {
                         this.$router.push({ path: '/join' });
                         return;
                     }
-                    // this.myIndex = doc.data().playersJoined.indexOf(this.myName);
+                    this.myIndex = doc.data().playersJoined.indexOf(this.myName);
                     this.myName = doc.data().playersJoined[this.myIndex];
                     this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+1)%4]);
                     this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+2)%4]);
@@ -308,7 +327,7 @@ export default {
             p2.sort(this.sortOrder);
             p3.sort(this.sortOrder);
             p4.sort(this.sortOrder);
-            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state, roundStarter: this.game[0].gameTurn});
+            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state, roundStarter: this.game[0].gameTurn, turn: this.game[0].gameTurn, sequence: [], team1current: 0, team2current: 0});
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
@@ -337,12 +356,18 @@ export default {
                 this.docRef.update({ bidder: this.myName });
             }
             this.docRef.update({ bid: Math.max(...tempBids) });
-            let count = 0;
+            let count = 0, allPassed = 0;
             if (this.game[0].bidder2 === "") {
                 this.docRef.update({ bidder2: this.game[0].playersJoined[(ind+1)%4] });
             }
             for (let i = 0; i < 4; i++) {
                 count += (tempBids[i] === 0) ? 1 : 0;
+                allPassed += (tempBids[i] === -1) ? 1 : 0;
+            }
+            if (count === 3 && allPassed === 1) {
+                this.docRef.update({ state: "allPassed" });
+                this.resetGame();
+                return;
             }
             if (count === 3) {
                 this.docRef.update({ state: "setTrump" });
@@ -449,9 +474,6 @@ export default {
             }, 1000);
             const ind = this.game[0].playersJoined.indexOf(this.myName);
             const newSeq = [...this.game[0].sequence, card];
-            if (newSeq.length % 4 === 0) {
-                this.docRef.update({ waitFlag: true });
-            }
             const len = newSeq.length;
             let checkRange = newSeq.slice(Math.max(len - (len%4), 0));
             const playerCards = [...this.game[0][`player${ind+1}`]];
@@ -481,6 +503,9 @@ export default {
             }
             if (this.game[0].trumpState === "justOpen") {
                 this.docRef.update({ trumpState: 'open' });
+            }
+            if (newSeq.length % 4 === 0) {
+                this.docRef.update({ waitFlag: true });
             }
             playerCards.splice(index, 1);
             this.docRef.update({ [`player${ind+1}`]: playerCards });
@@ -521,7 +546,7 @@ export default {
             }
             highestCardPriority = -1;
             // Now checking if trump is open and played
-            if (trumpState === "open" && suits[0] !== trump) {
+            if (trumpState.endsWith("pen") && suits[0] !== trump) {
                 for (let i = 1; i <= 3; i++) {
                     if (suits[i] === trump && priority[i] > highestCardPriority) {
                         highestCardPriority = priority[i];
@@ -716,6 +741,12 @@ export default {
             }
             return "";
         },
+        allPassedModalView() {
+            if (this.game[0].state === "allPassed") {
+                return 'is-active';
+            }
+            return "";
+        },
         marriageModalView() {
             if (this.game[0].state.startsWith('marriage')) {
                 return 'is-active';
@@ -821,6 +852,12 @@ export default {
                 theirTeamNum = 2;
             }
             return this.game[0][`team${theirTeamNum}`];
+        },
+        nonePassed() {
+            if (this.game[0].bids.includes(0)) {
+                return false;
+            }
+            return true;
         }
     }
 }

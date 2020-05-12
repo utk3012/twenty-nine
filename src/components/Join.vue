@@ -11,9 +11,14 @@
           <input class="input" type="number" placeholder="Game code" v-model="token">
         </div>
         <br>
-        <button class="button is-success" @click="joinGame">Join</button>
-        <br><br>
+        <button class="button is-success" @click="joinGame" style="margin-right: 10px;">Join</button>
+        &emsp;
         <router-link class="button is-info is-outlined" :to="`/create`" tag="button">Go to Create</router-link>
+        <br><br>
+        <div class="has-text-white">Last games joined: 
+          <span class="has-text-success" v-for="(game, index) in lastGames" :key="game.token">{{ game.token }}<span v-if="index+1 != lastGames.length">, </span></span>
+          <span class="has-text-danger" v-if="lastGames.length === 0">None</span>
+          </div>
         </div>
         <div class="column"></div>
       </div>
@@ -45,8 +50,20 @@ export default {
             token: null,
             joined: false,
             games: [],
-            name: null
+            name: null,
+            lastGames: []
         }
+    },
+    created() {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          this.name = user.displayName.split(" ")[0];
+        }
+        else {
+          this.$router.push({ path: '/' });
+        }
+        this.$bind('lastGames', db.collection('games').where('playersUID', 'array-contains', user.uid));
+      });
     },
   methods: {
       joinGame() {
