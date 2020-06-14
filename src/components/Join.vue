@@ -16,7 +16,9 @@
         <router-link class="button is-info is-outlined" :to="`/create`" tag="button">Go to Create</router-link>
         <br><br>
         <div class="has-text-white">Last games joined: 
-          <span class="has-text-success" v-for="(game, index) in lastGames" :key="game.token">{{ game.token }}<span v-if="index+1 != lastGames.length">, </span></span>
+          <span class="has-text-success" v-for="(game, index) in lastGames" :key="game.token">
+            <router-link class="has-text-success" :to="`/play/${game.token}`">{{ game.token }}</router-link>
+            <span v-if="index+1 != lastGames.length">, </span></span>
           <span class="has-text-danger" v-if="lastGames.length === 0">None</span>
           </div>
         </div>
@@ -62,7 +64,7 @@ export default {
         else {
           this.$router.push({ path: '/' });
         }
-        this.$bind('lastGames', db.collection('games').where('playersUID', 'array-contains', user.uid));
+        this.$bind('lastGames', db.collection('games').where('playersUID', 'array-contains', user.uid).orderBy("createdAt", "desc").limit(3));
       });
     },
   methods: {

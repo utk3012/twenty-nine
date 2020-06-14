@@ -10,9 +10,9 @@
                     <br>
                     <div class="info">
                         <div v-if="game[0].trumpState === `not set` || game[0].trumpState === `hidden`">Trump: X</div>
-                        <div v-if="game[0].stakes===2" class="has-text-danger">(Double)</div>
-                        <div v-if="game[0].stakes===4" class="has-text-danger">(Re-Double)</div>
-                        <div v-if="game[0].stakes===6" class="has-text-danger">(Full Set)</div>
+                        <div v-if="game[0].stakes===2" class="has-text-danger">(Double - {{ whoDouble }})</div>
+                        <div v-if="game[0].stakes===4" class="has-text-danger">(Re-Double - {{ whoRedouble }})</div>
+                        <div v-if="game[0].stakes===6" class="has-text-danger">(Full Set - {{ whoFullset }})</div>
                         <button v-if="game[0].gameOver && myName === game[0].bidder" class="button is-success is-small"  @click="skipGame">Skip</button>
                     </div>
                     </div>
@@ -23,7 +23,9 @@
                 </div>
             </div>
             <div class="column name">
-                <span :class="game[0].turn === players[1] ? `has-text-info` : ``">{{ players[1] }}</span>&nbsp;
+                <span :class="(game[0].state === 'bidding' && game[0].bids[game[0].playersJoined.indexOf(players[1])] === 0) ? `has-text-danger` : ``">
+                    {{ players[1] }}<span v-if="game[0].turn === players[1]"> &#10026;</span>
+                </span>&nbsp;
                 <img src="https://www.w3schools.com/howto/img_avatar.png" alt="Avatar" class="avatar">
             </div>
             <div class="column">
@@ -43,7 +45,9 @@
     
     <div class="columns is-vcentered" style="margin-top: 2%; min-height: 156px;">
         <div class="column name" style="text-align: left; margin-left: 15px; margin-top: 35px;">
-            <span :class="game[0].turn === players[2] ? `has-text-info` : ``">{{ players[2] }}</span>&nbsp;
+            <span :class="(game[0].state === 'bidding' && game[0].bids[game[0].playersJoined.indexOf(players[2])] === 0) ? `has-text-danger` : ``">
+                {{ players[2] }}<span v-if="game[0].turn === players[2]"> &#10026;</span>
+            </span>&nbsp;
             <img src="https://www.w3schools.com/w3images/avatar2.png" alt="Avatar" class="avatar">
         </div>
         <div class="column is-half" style="display: block;  border-spacing: 10px; margin-left: 20px;">
@@ -74,7 +78,9 @@
                 </span>
         </div>
         <div class="column name" style="text-align: right; margin-right: 15px;  margin-top: 35px;">
-            <span :class="game[0].turn === players[0] ? `has-text-info` : ``">{{ players[0] }}</span>&nbsp;
+            <span :class="(game[0].state === 'bidding' && game[0].bids[game[0].playersJoined.indexOf(players[0])] === 0) ? `has-text-danger` : ``">
+                {{ players[0] }}<span v-if="game[0].turn === players[0]"> &#10026;</span>
+            </span>&nbsp;
             <img src="https://www.w3schools.com/howto/img_avatar2.png" alt="Avatar" class="avatar">
         </div>
       </div>
@@ -166,7 +172,7 @@
 
         <div :class="`modal ${doubleModalView}`" v-if="doubleModalView === `is-active`">
             <div class="modal-background"></div>
-            <div class="modal-content" style="height: 50px;">
+            <div class="modal-content" style="height: 100px;">
                 <div class="buttons has-addons is-centered">
                     <span v-if="game[0].state === `double`">
                         <button class="button is-danger" @click="highStakes(2)">Set Double</button>
@@ -181,6 +187,12 @@
                         <button class="button is-info" @click="highStakes(5)">Cancel</button>
                     </span>
                 </div>
+                <span v-if="game[0].state === `redouble`">
+                    <span class="has-text-danger">Doubled by:</span> {{ whoDouble }}
+                </span>
+                <span v-if="game[0].state === `fullset`">
+                    <span class="has-text-danger">Redoubled by:</span> {{ whoRedouble }}
+                </span>
             </div>
         </div>
 
@@ -277,7 +289,7 @@ export default {
                         this.$router.push({ path: '/join' });
                         return;
                     }
-                    this.myIndex = doc.data().playersJoined.indexOf(this.myName);
+                    // this.myIndex = doc.data().playersJoined.indexOf(this.myName);
                     this.myName = doc.data().playersJoined[this.myIndex];
                     this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+1)%4]);
                     this.players.push(doc.data().playersJoined[(doc.data().playersJoined.indexOf(this.myName)+2)%4]);
@@ -288,46 +300,57 @@ export default {
     },
     methods: {
         dealCards(num) {
-            let p1 = [];
-            let p2 = [];
-            let p3 = [];
-            let p4 = [];
-            let cards = ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"];
+            let distributedCards = {p1: [], p2: [], p3: [], p4: []};
+            let cards = this.shuffleCards();
             if (num === 0) {
                 cards = this.game[0].cardsLeft;
             }
+            let i = 0;
             while (cards.length > num) {
-                const rand = Math.floor(Math.random() * (cards.length-1));
-                if (cards.length % 4 === 0) {
-                    p1.push(cards[rand]);
+                if (i % 4 === 0) {
+                    distributedCards[`p${((this.myIndex+1)%4)+1}`].push(cards.shift());
                 }
-                if (cards.length % 4 === 1) {
-                    p2.push(cards[rand]);
+                if (i % 4 === 1) {
+                    distributedCards[`p${((this.myIndex+2)%4)+1}`].push(cards.shift());
                 }
-                if (cards.length % 4 === 2) {
-                    p3.push(cards[rand]);
+                if (i % 4 === 2) {
+                    distributedCards[`p${((this.myIndex+3)%4)+1}`].push(cards.shift());
                 }
-                if (cards.length % 4 === 3) {
-                    p4.push(cards[rand]);
+                if (i % 4 === 3) {
+                    distributedCards[`p${((this.myIndex+4)%4)+1}`].push(cards.shift());
                 }
-                cards.splice(rand, 1);
+                i++;
             }
             let state = "bidding";
             if (num === 0) {
-                p1 = [...this.game[0].player1, ...p1];
-                p2 = [...this.game[0].player2, ...p2];
-                p3 = [...this.game[0].player3, ...p3];
-                p4 = [...this.game[0].player4, ...p4];
+                distributedCards.p1 = [...this.game[0].player1, ...distributedCards.p1];
+                distributedCards.p2 = [...this.game[0].player2, ...distributedCards.p2];
+                distributedCards.p3 = [...this.game[0].player3, ...distributedCards.p3];
+                distributedCards.p4 = [...this.game[0].player4, ...distributedCards.p4];
                 state = "play";
             }
             else {
                 this.docRef.update({ cardsLeft: cards });
             }
-            p1.sort(this.sortOrder);
-            p2.sort(this.sortOrder);
-            p3.sort(this.sortOrder);
-            p4.sort(this.sortOrder);
-            this.docRef.update({ player1: p1, player2: p2, player3: p3, player4: p4, state: state, roundStarter: this.game[0].gameTurn, turn: this.game[0].gameTurn, sequence: [], team1current: 0, team2current: 0});
+            distributedCards.p1.sort(this.sortOrder);
+            distributedCards.p2.sort(this.sortOrder);
+            distributedCards.p3.sort(this.sortOrder);
+            distributedCards.p4.sort(this.sortOrder);
+            this.docRef.update({ player1: distributedCards.p1, player2: distributedCards.p2, player3: distributedCards.p3, player4: distributedCards.p4, 
+                state: state, roundStarter: this.game[0].gameTurn, turn: this.game[0].gameTurn,
+                sequence: [], team1current: 0, team2current: 0});
+        },
+        shuffleCards() {
+            let cards = ["JC", "9C", "AC", "10C", "KC", "QC", "8C", "7C", "JD", "9D", "AD", "10D", "KD", "QD", "8D", "7D", "JS", "9S", "AS", "10S", "KS", "QS", "8S", "7S", "JH", "9H", "AH", "10H", "KH", "QH", "8H", "7H"];
+            for (let j=0; j<3; j++) {
+                for (let i=0; i<32; i++) {
+                    const rand = Math.floor(Math.random() * 31);
+                    let temp = cards[i];
+                    cards[i] = cards[rand];
+                    cards[rand] = temp;
+                }
+            }
+            return cards;
         },
         getImagePath(fileName) {
             return require(`../assets/${fileName}.jpg`);
@@ -406,7 +429,7 @@ export default {
             this.docRef.update({ trump: suit, trumpState: "hidden", state: "double" });
         },
         revealTrump() {
-            if (this.myName !== this.game[0].turn || this.game[0].state !== "play") {
+            if (this.myName !== this.game[0].turn || this.game[0].state !== "play" || this.game[0].sequence.length % 4 === 0) {
                 return;
             }
             const ind = this.game[0].playersJoined.indexOf(this.myName);
@@ -858,6 +881,33 @@ export default {
                 return false;
             }
             return true;
+        },
+        whoDouble() {
+            if (this.game[0].double.length > 0 && this.game[0].double[0].action === 2) {
+                return this.game[0].double[0].name;
+            }
+            else if (this.game[0].double.length > 1 && this.game[0].double[1].action === 2) {
+                return this.game[0].double[1].name;
+            }
+            return "";
+        },
+        whoRedouble() {
+            if (this.game[0].redouble.length > 0 && this.game[0].redouble[0].action === 4) {
+                return this.game[0].redouble[0].name;
+            }
+            else if (this.game[0].redouble.length > 1 && this.game[0].redouble[1].action === 4) {
+                return this.game[0].redouble[1].name;
+            }
+            return "";
+        },
+        whoFullset() {
+            if (this.game[0].fullset.length > 0 && this.game[0].fullset[0].action === 6) {
+                return this.game[0].fullset[0].name;
+            }
+            else if (this.game[0].fullset.length > 1 && this.game[0].fullset[1].action === 6) {
+                return this.game[0].fullset[1].name;
+            }
+            return "";
         }
     }
 }
