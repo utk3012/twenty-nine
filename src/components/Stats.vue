@@ -21,6 +21,12 @@
                         <td>{{ value.won }}</td>
                         <td>{{ value.matches - value.won}}</td>
                     </tr>
+                    <tr>
+                        <th></th>
+                        <th>{{ total.matches }}</th>
+                        <th class="won">{{ total.won }}</th>
+                        <th class="lost">{{ total.lost }}</th>
+                    </tr>
                 </tbody>
               </table>
         </div>
@@ -41,7 +47,12 @@ export default {
             manipulate: false,
             name: null,
             lastGames: [],
-            teams: {}
+            teams: {},
+            total: {
+                matches: 0,
+                won: 0,
+                lost: 0
+            }
         }
     },
     created() {
@@ -72,17 +83,21 @@ export default {
                         this.teams[teamMate] = {matches: 0, won: 0}
                     }
                     this.teams[teamMate].matches += 1;
+                    this.total.matches += 1;
                     if (myIndex === 0 || teamMateIndex === 0) {
                         if (game.team1 >= 6 || game.team2 <= -6) {
                             this.teams[teamMate].won += 1;
+                            this.total.won++;
                         }
                     }
                     if (myIndex !== 0 && teamMateIndex !== 0) {
                         if (game.team2 >= 6 || game.team1 <= -6) {
                             this.teams[teamMate].won += 1;
+                            this.total.won++;
                         }
                     }
                 }
+                this.total.lost = this.total.matches-this.total.won;
                 this.manipulate = true;
             })
       });
@@ -102,5 +117,11 @@ export default {
       font-size: 1.1rem;
       margin-top: 5rem;
       color: #dbd5d5;
+  }
+  .won{
+      color: green;
+  }
+  .lost{
+      color: red;
   }
 </style>
