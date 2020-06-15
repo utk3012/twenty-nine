@@ -8,7 +8,7 @@
             <h1 class="has-text-white">Join Game</h1>
             <br>
           <div class="control">
-          <input class="input" type="number" placeholder="Game code" v-model="token">
+          <input id="partitioned" maxlength="6" type="text" v-model="token">
         </div>
         <br>
         <button class="button is-success" @click="joinGame" style="margin-right: 10px;">Join</button>
@@ -78,9 +78,10 @@ export default {
             else {
               this.$router.push({ path: '/' });
             }
-          if (!this.token || !this.name) {
+          if (!this.token || !this.name || isNaN(this.token)) {
               return;
           }
+          this.token = +this.token;
           db.collection('games').where('token', '==', +this.token)
           .get()
           .then((querySnapshot) => {
@@ -108,11 +109,32 @@ export default {
 
 <style scoped>
   .main {
-      text-align: center;
+    text-align: center;
   }
   .joined-view {
-      font-size: 1.1rem;
-      margin-top: 5rem;
-      color: #dbd5d5;
+    font-size: 1.1rem;
+    margin-top: 5rem;
+    color: #dbd5d5;
   }
+  #partitioned {
+    display: block;
+    margin: auto;
+    border: none;
+    padding: 0;
+    width: 9.005ch;
+    background: transparent;
+    color: white;
+    background: 
+      repeating-linear-gradient(90deg, 
+          dimgrey 0, 
+          dimgrey 1ch, 
+          transparent 0, 
+          transparent 1.5ch) 
+        0 100%/100% 2px no-repeat;
+    font: 5ch droid sans mono, consolas, monospace;
+    letter-spacing: .5ch;
+    }
+    #partitioned:focus {
+      outline: none;
+    }
 </style>
