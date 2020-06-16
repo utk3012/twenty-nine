@@ -5,11 +5,13 @@
       <h2 v-if="name">Hi {{ name }}!</h2>
       <h2 v-else>Please Sign In</h2>
       <br>
-      <button class="button is-danger" @click="login()">Sign In with Google</button>
+      <button class="button is-danger" @click="login()">Login with Google</button>
       <br><br>
       <router-link class="button is-success" to="/create" tag="button">Create game</router-link>
       <br><br>
       <router-link class="button is-success" to="/join" tag="button">Join game</router-link>
+      <br><br>
+      <router-link class="button is-danger" to="/stats" tag="button">Statistics</router-link>
     </div>
   </div>
 </template>
